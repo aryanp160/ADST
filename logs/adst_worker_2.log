@@ -1,0 +1,11 @@
+{"component": "worker", "event": "gen_ed25519", "worker": 2, "ts": "2025-11-30T16:54:10.127608+00:00"}
+{"component": "worker", "event": "handshake_complete", "worker": 2, "epoch": 1, "ts": "2025-11-30T16:54:10.638757+00:00"}
+{"component": "worker", "event": "sent_mask", "worker": 2, "to": 3, "ts": "2025-11-30T16:54:11.035887+00:00"}
+{"component": "worker", "event": "mask_receive_error", "worker": 2, "err": "Unterminated string starting at: line 1 column 146 (char 145)", "ts": "2025-11-30T16:54:11.081194+00:00"}
+{"component": "worker", "event": "nack_handled", "worker": 2, "seq": 3585060677, "missing": [125], "ts": "2025-11-30T16:54:13.239906+00:00"}
+{"component": "worker", "event": "udp_chunk_sent", "worker": 2, "seq": 3585060677, "ts": "2025-11-30T16:54:13.241413+00:00"}
+{"component": "worker", "event": "done", "worker": 2, "ts": "2025-11-30T16:54:16.746508+00:00"}
+{"component": "worker", "event": "handshake_complete", "worker": 2, "epoch": 1, "ts": "2025-11-30T16:56:54.428044+00:00"}
+{"component": "worker", "event": "udp_chunk_sent", "worker": 2, "seq": 3585224464, "ts": "2025-11-30T16:56:58.085671+00:00"}
+{"component": "worker", "event": "handshake_complete", "worker": 2, "epoch": 1, "ts": "2025-11-30T18:02:16.527159+00:00"}
+{"component": "worker", "event": "udp_chunk_sent", "worker": 2, "seq": 3589146530, "ts": "2025-11-30T18:02:20.612741+00:00"}

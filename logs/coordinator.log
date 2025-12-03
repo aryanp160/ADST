@@ -1,0 +1,8 @@
+[C] TCP control listening on 127.0.0.1:9000
+[C] UDP data listening on 127.0.0.1:9001
+[C] Coordinator running. Waiting for workers to join...
+[C] All workers ready. Starting auto-run (3 epochs).
+Traceback (most recent call last):
+  File "C:\Users\ASUS\Desktop\mini_project_aditi\coordinator.py", line 353, in <module>
+    time.sleep(0.5)
+KeyboardInterrupt

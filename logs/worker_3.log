@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "C:\Users\ASUS\Desktop\mini_project_aditi\worker.py", line 286, in <module>
+    break
+KeyboardInterrupt
