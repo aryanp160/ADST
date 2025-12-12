@@ -16,20 +16,9 @@ import numpy as np
 import torch, torch.nn as nn, torch.nn.functional as F
 from torchvision import datasets, transforms
 
-MAX_EPOCHS = 3
+MAX_EPOCHS = 10
 
-# Simple model (same as coordinator)
-class SmallCNN(nn.Module):
-    def __init__(self, num_classes=2):
-        super().__init__()
-        self.conv1 = nn.Conv2d(3, 8, 3, 1, 1)
-        self.conv2 = nn.Conv2d(8, 16, 3, 1, 1)
-        self.fc1 = nn.Linear(16 * 8 * 8, 64)
-        self.fc2 = nn.Linear(64, num_classes)
-    def forward(self, x):
-        x = F.relu(self.conv1(x)); x = F.relu(self.conv2(x))
-        x = F.adaptive_avg_pool2d(x, (8,8)); x = x.view(x.size(0), -1)
-        x = F.relu(self.fc1(x)); return self.fc2(x)
+from model import SmallCNN
 
 KEY_DIR = "keys"; LOG_DIR = "logs"
 os.makedirs(KEY_DIR, exist_ok=True); os.makedirs(LOG_DIR, exist_ok=True)
@@ -48,11 +37,7 @@ def atomic_write(path: str, data: bytes):
 def hkdf_derive(shared: bytes, info=b"adst transport key", length=32):
     return HKDF(algorithm=hashes.SHA256(), length=length, salt=None, info=info).derive(shared)
 
-def flatten_gradients(model):
-    arrs = []
-    for p in model.parameters():
-        arrs.append(p.grad.view(-1).cpu().numpy())
-    return np.concatenate(arrs)
+
 
 # ---------- identity (Ed25519) ----------
 def get_or_create_ed25519(worker_id):

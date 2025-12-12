@@ -1,8 +1,0 @@
-{"component": "worker", "event": "gen_ed25519", "worker": 4, "ts": "2025-11-30T16:54:11.167943+00:00"}
-{"component": "worker", "event": "handshake_complete", "worker": 4, "epoch": 1, "ts": "2025-11-30T16:54:11.181627+00:00"}
-{"component": "worker", "event": "udp_chunk_sent", "worker": 4, "seq": 3585061227, "ts": "2025-11-30T16:54:16.084641+00:00"}
-{"component": "worker", "event": "done", "worker": 4, "ts": "2025-11-30T16:54:19.589969+00:00"}
-{"component": "worker", "event": "handshake_complete", "worker": 4, "epoch": 1, "ts": "2025-11-30T16:56:55.597478+00:00"}
-{"component": "worker", "event": "udp_chunk_sent", "worker": 4, "seq": 3585225610, "ts": "2025-11-30T16:56:58.085671+00:00"}
-{"component": "worker", "event": "handshake_complete", "worker": 4, "epoch": 1, "ts": "2025-11-30T18:02:18.213542+00:00"}
-{"component": "worker", "event": "udp_chunk_sent", "worker": 4, "seq": 3589148207, "ts": "2025-11-30T18:02:20.615771+00:00"}

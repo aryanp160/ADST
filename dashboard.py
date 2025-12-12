@@ -7,29 +7,59 @@ import matplotlib.pyplot as plt
 LOG_PATH = "logs/adst_coord.log"
 MODEL_PATH = "trained_model.npy"
 
-st.set_page_config(page_title="ADST Dashboard", layout="wide", page_icon="🛡️")
+st.set_page_config(page_title="ADST Mission Control", layout="wide", page_icon="🛡️")
 
-# Custom CSS for "Tech" look
+# ---------------------------------------
+# Custom CSS for "Sci-Fi/Tech" look
+# ---------------------------------------
 st.markdown("""
 <style>
+    /* Dark Theme Base */
+    .stApp {
+        background-color: #050505;
+        color: #e0e0e0;
+    }
+    
+    /* Metrics */
     .stMetric {
-        background-color: #0E1117;
-        border: 1px solid #303030;
+        background-color: #111;
+        border: 1px solid #333;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,255,200,0.05);
+    }
+    .stMetric label { color: #888; }
+    .stMetric .css-1wivap2 { color: #00ffc8; } /* Metric value */
+
+    /* Cards */
+    .worker-card {
+        background-color: #1a1a2e;
+        border: 1px solid #333;
         padding: 10px;
         border-radius: 5px;
+        text-align: center;
+        margin-bottom: 5px;
     }
-    .stAlert {
-        background-color: #0E1117;
-        border: 1px solid #303030;
+    .status-active { color: #00ff00; font-weight: bold; }
+    .status-inactive { color: #ff4444; font-weight: bold; }
+    
+    /* Logs */
+    .log-entry {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        padding: 2px 0;
+        border-bottom: 1px solid #222;
     }
+    .log-sys { color: #00bfff; }
+    .log-wrk { color: #aaaaaa; }
+    .log-err { color: #ff5555; }
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------
-# JS trick: background refresh ONLY data
+# JS Refresh Logic
 # ---------------------------------------
-refresh_rate = 2000  # 2 seconds
-
+refresh_rate = 1000  # 1 second for smoother feel
 st.markdown(
     f"""
     <script>
@@ -42,126 +72,163 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-# Hidden button to refresh ONLY data
-refresh_button = st.button("Refresh Data", key="data_refresh_button", help="hidden")
-
+refresh_button = st.button("Refresh", key="data_refresh_button", help="hidden")
 
 # ---------------------------------------
-# Helper functions
+# Helpers
 # ---------------------------------------
-
 def load_logs():
-    if not os.path.exists(LOG_PATH):
-        return pd.DataFrame()
+    if not os.path.exists(LOG_PATH): return pd.DataFrame()
     with open(LOG_PATH, "r", encoding="utf-8", errors="ignore") as f:
-        lines = f.readlines()[-2000:]
+        lines = f.readlines()[-3000:]
     parsed = []
     for ln in lines:
         try:
             parsed.append(json.loads(ln))
-        except:
-            pass
-    return pd.DataFrame(parsed)
+        except: pass
+    if not parsed: return pd.DataFrame()
+    df = pd.DataFrame(parsed)
+    # Ensure TS is datetime
+    if "ts" in df.columns:
+        df["ts"] = pd.to_datetime(df["ts"])
+    return df
 
-def load_model_stats():
-    if not os.path.exists(MODEL_PATH):
-        return None
-    arr = np.load(MODEL_PATH)
-    return {
-        "mean": float(np.mean(arr)),
-        "std": float(np.std(arr)),
-        "norm": float(np.linalg.norm(arr)),
-    }
-
-
-# ---------------------------------------
-# Static UI (never refreshes)
-# ---------------------------------------
-
-st.title("🚀 ADST 2.0 Federated Learning Dashboard")
-st.caption(f"Real-time monitoring • Refresh every {refresh_rate/1000}s")
-
-metric_box = st.empty()
-workers_box = st.empty()
-charts_box = st.empty()
-logs_box = st.empty()
+def get_worker_status(df, worker_id, current_time):
+    # Check last activity for this worker
+    w_logs = df[df["worker"] == worker_id]
+    if w_logs.empty: return "Offline", "grey"
+    
+    last_act = w_logs["ts"].max()
+    seconds_ago = (current_time - last_act).total_seconds()
+    
+    if seconds_ago < 5: return "Active", "#00ff00"
+    elif seconds_ago < 15: return "Idle", "#ffff00"
+    else: return "Offline", "#ff4444"
 
 # ---------------------------------------
-# Data refresh section (ONLY this part reruns)
+# UI Layout
 # ---------------------------------------
+st.title("🛡️ ADST Federated Learning System")
+st.markdown("### Secure Aggregation • Differential Privacy • Real-Time")
 
-df = load_logs()
+placeholder = st.empty()
 
-if df.empty:
-    st.info("Waiting for first logs…")
-    st.stop()
+# ---------------------------------------
+# Render Loop
+# ---------------------------------------
+with placeholder.container():
+    df = load_logs()
+    
+    if df.empty:
+        st.warning("Waiting for system logs...")
+        st.stop()
 
-# --------- Top Metrics ---------
-with metric_box.container():
+    now = pd.Timestamp.now(tz="UTC")
+
+    # --- Header Metrics ---
     col1, col2, col3, col4 = st.columns(4)
-
-    # Epoch
+    
+    # 1. Epoch
     epoch_rows = df[df["event"].str.contains("epoch_sent|epoch_rotate", na=False)]
-    current_epoch = int(epoch_rows["epoch"].max()) if not epoch_rows.empty else 0
-    col1.metric("Current Epoch", current_epoch)
+    curr_epoch = int(epoch_rows["epoch"].max()) if not epoch_rows.empty else 0
+    col1.metric("Current Epoch", f"{curr_epoch}/3")
+    
+    # 2. Status
+    active_mask = (now - df["ts"]) < pd.Timedelta(seconds=10)
+    recent_activity = len(df[active_mask])
+    sys_status = "training" if recent_activity > 0 else "idle"
+    col2.metric("System Status", sys_status.upper(), delta="Live" if sys_status=="training" else "Waiting")
 
-    # Active Workers
-    worker_ids = sorted(df[df["event"] == "worker_hello"]["worker"].unique().tolist())
-    col2.metric("Active Workers", len(worker_ids))
+    # 3. Aggregations
+    total_aggs = len(df[df["event"]=="aggregated_gradient"])
+    col3.metric("Global Updates", total_aggs)
+    
+    # 4. DP Noise
+    col4.metric("Privacy Guarantee", "ε-DP", "Active")
 
-    # Privacy Status
-    col4.metric("Privacy Mode", "🛡️ Active", delta="DP + SecAgg")
+    st.divider()
 
-    # Model stats
-    stats = load_model_stats()
-    if stats:
-        col3.metric("Mean Weight", f"{stats['mean']:.6f}")
-    else:
-        col3.write("Model not saved yet")
+    # --- Network Grid ---
+    st.subheader("🌐 Network Status")
+    
+    # Known workers usually 1-4 for this demo
+    worker_ids = [1, 2, 3, 4] 
+    cols = st.columns(len(worker_ids))
+    
+    for i, wid in enumerate(worker_ids):
+        status, color = get_worker_status(df, wid, now)
+        with cols[i]:
+            st.markdown(f"""
+            <div class="worker-card" style="border-color: {color}; box-shadow: 0 0 5px {color};">
+                <h3>Worker {wid}</h3>
+                <p style="color:{color}; font-size:1.2em;">● {status}</p>
+                <div style="font-size:0.8em; color:#888;">ID: site{wid}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
+    # --- Charts & Visualization ---
+    st.divider()
+    c1, c2 = st.columns([2, 1])
+    
+    with c1:
+        st.subheader("📉 Training Performance")
+        agg = df[df["event"] == "aggregated_gradient"]
+        val = df[df["event"] == "validation_accuracy"]
+        
+        if not agg.empty:
+            # Dual axis plot
+            fig, ax1 = plt.subplots(figsize=(8,3), dpi=100)
+            fig.patch.set_facecolor('#0E1117')
+            ax1.set_facecolor('#0E1117')
+            
+            # Gradient Norm
+            ax1.plot(agg["epoch"], agg["grad_norm"], color="#00ffc8", marker="o", label="Gradient Norm")
+            ax1.set_xlabel("Epoch", color="white")
+            ax1.set_ylabel("Norm", color="#00ffc8")
+            ax1.tick_params(axis='x', colors='white')
+            ax1.tick_params(axis='y', colors='white')
+            ax1.grid(True, color="#333", linestyle="--")
+            
+            # Val Acc on secondary axis
+            if not val.empty:
+                ax2 = ax1.twinx()
+                ax2.plot(val["epoch"], val["acc"], color="#ff00ff", marker="s", linestyle="--", label="Val Accuracy")
+                ax2.set_ylabel("Accuracy", color="#ff00ff")
+                ax2.tick_params(axis='y', colors='white')
+                ax2.set_ylim(0, 1.0)
+            
+            st.pyplot(fig)
+        else:
+            st.info("Waiting for first aggregation...")
 
-# --------- Worker Table ---------
-with workers_box.container():
-    st.subheader("👥 Active Workers")
-    st.write(df[df["event"] == "worker_hello"][["worker", "ts"]].drop_duplicates())
+    with c2:
+        st.subheader("📝 Live Event Feed")
+        # Filter important events
+        events = df.sort_values("ts", ascending=False).head(15)
+        html_logs = ""
+        for _, row in events.iterrows():
+            evt = row['event']
+            comp = row.get('component', 'sys')
+            ts = row['ts'].strftime('%H:%M:%S')
+            
+            color_class = "log-sys"
+            if comp == "worker": color_class = "log-wrk"
+            if "error" in evt or "fail" in evt or "nack" in evt: color_class = "log-err"
+            
+            icon = "🔹"
+            if "gradient" in evt: icon = "📦"
+            if "epoch" in evt: icon = "🔄"
+            if "error" in evt: icon = "⚠️"
+            
+            # Simplified message
+            msg = f"{evt}"
+            if "worker" in row and not pd.isna(row["worker"]):
+                msg += f" (Worker {int(row['worker'])})"
+                
+            html_logs += f"<div class='log-entry {color_class}'>{ts} {icon} {msg}</div>"
+            
+        st.markdown(f"<div style='height: 300px; overflow-y: auto; background-color: #111; padding:10px; border-radius:5px;'>{html_logs}</div>", unsafe_allow_html=True)
 
-
-# --------- Charts ---------
-with charts_box.container():
-    st.subheader("📉 Training Curves (Compact)")
-
-    agg = df[df["event"] == "aggregated_gradient"]
-    val = df[df["event"] == "validation_accuracy"]
-
-    colA, colB, colC = st.columns(3)
-
-    if not agg.empty:
-        fig, ax = plt.subplots(figsize=(4, 2), dpi=100)
-        ax.plot(agg["epoch"], agg["mean_gradient"], marker="o", markersize=4)
-        ax.set_title("Mean Gradient", fontsize=10)
-        ax.set_xlabel("Epoch", fontsize=8)
-        ax.set_ylabel("Value", fontsize=8)
-        colA.pyplot(fig)
-
-    if not val.empty:
-        fig, ax = plt.subplots(figsize=(4, 2), dpi=100)
-        ax.plot(val["epoch"], val["acc"], marker="o", markersize=4, color="green")
-        ax.set_title("Validation Accuracy", fontsize=10)
-        ax.set_xlabel("Epoch", fontsize=8)
-        ax.set_ylabel("Accuracy", fontsize=8)
-        colB.pyplot(fig)
-
-    if not agg.empty and "grad_norm" in agg.columns:
-        fig, ax = plt.subplots(figsize=(4, 2), dpi=100)
-        ax.plot(agg["epoch"], agg["grad_norm"], marker="o", markersize=4, color="orange")
-        ax.set_title("Gradient Norm (L2)", fontsize=10)
-        ax.set_xlabel("Epoch", fontsize=8)
-        ax.set_ylabel("Norm", fontsize=8)
-        colC.pyplot(fig)
-
-
-# --------- Logs ---------
-with logs_box.container():
-    st.subheader("📄 Recent Logs")
-    st.dataframe(df.tail(80), height=250)
+    # --- Footer Usage Hint ---
+    st.divider()
+    st.info("💡 **Tip**: To use the trained model, run `python use_model.py` in your terminal.")

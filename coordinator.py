@@ -16,24 +16,10 @@ import torch, torch.nn as nn, torch.nn.functional as F
 from torchvision import datasets, transforms
 
 # -----------------
-MAX_EPOCHS = 3
+MAX_EPOCHS = 10
 # -----------------
 
-# SmallCNN (same shape as workers)
-class SmallCNN(nn.Module):
-    def __init__(self, num_classes=2):
-        super().__init__()
-        self.conv1 = nn.Conv2d(3, 8, 3, 1, 1)
-        self.conv2 = nn.Conv2d(8, 16, 3, 1, 1)
-        self.fc1 = nn.Linear(16 * 8 * 8, 64)
-        self.fc2 = nn.Linear(64, num_classes)
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.adaptive_avg_pool2d(x, (8,8))
-        x = x.view(x.size(0), -1)
-        x = F.relu(self.fc1(x))
-        return self.fc2(x)
+from model import SmallCNN, get_model_weights
 
 # ----------------- config -----------------
 KEY_DIR = "keys"; LOG_DIR = "logs"
@@ -189,11 +175,7 @@ def tcp_server(host, port):
 def make_aad(jobid, epoch, sender, seq, chunk, total, dtype):
     return struct.pack(">Q I I I I H", jobid, epoch, sender, seq, chunk, total) + struct.pack(">H", dtype)
 
-def get_model_weights(model):
-    weights = []
-    for p in model.parameters():
-        weights.append(p.detach().cpu().numpy().ravel())
-    return np.concatenate(weights)
+# make_aad helper is kept here or moved to utils if we did that, but model weights helper is now imported
 
 def udp_receiver(host, port, stop_event):
     global global_model, EPOCH, K_EPOCH, K_PREV

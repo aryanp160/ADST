@@ -35,7 +35,8 @@ def main():
         while True:
             ret = coord_proc.poll()
             if ret is not None:
-                print("[demo] Coordinator exited. Shutting down workers and dashboard.")
+                print("[demo] Coordinator exited. Training Complete!")
+                print("[demo] Shutting down workers and dashboard.")
                 break
             time.sleep(1)
     except KeyboardInterrupt:
