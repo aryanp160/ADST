@@ -1,4 +1,4 @@
-# ADST 2.0: Secure Federated Learning 
+# ADST : Secure Federated Learning 
 
 **ADST (Authenticated Distributed Secure Training)** is a privacy-preserving Federated Learning system simulation. It demonstrates how multiple workers can collaboratively train a machine learning model without sharing their raw data or their individual gradient updates with the central server.
 
